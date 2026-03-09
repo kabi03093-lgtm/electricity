@@ -1,0 +1,4 @@
+## 🎥 Demo Video
+Working demonstration of the Electricity Theft Detection System:
+
+🔗 https://drive.google.com/file/d/1Khjc-F2t8rXkqOICTivN39yMvKGpCmXc/view?usp=sharing

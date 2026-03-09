@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electricity Management Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: #e9ecef;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: #d1d9e0; 
+            width: 100%;
+            max-width: 450px;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        h2 { color: #0077b6; font-size: 24px; margin-bottom: 20px; text-transform: uppercase; }
+
+        /* COMMON UTILS */
+        .hidden { display: none !important; }
+        .back-btn {
+            margin-top: 20px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: 0.2s;
+        }
+        .back-btn:hover { background: #5a6268; }
+
+        /* --- PAGE 1: LOGIN --- */
+        .role-selector { margin-bottom: 20px; text-align: left; }
+        select {
+            width: 100%; padding: 12px; border: 2px solid #0077b6;
+            border-radius: 8px; font-weight: 600; color: #0077b6;
+        }
+        .form-group { text-align: left; margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 5px; }
+        input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; }
+        .captcha-area {
+            display: flex; align-items: center; gap: 10px;
+            background: #e0f7fa; padding: 10px; border-radius: 6px; margin-bottom: 10px;
+        }
+        .captcha-code { flex-grow: 1; font-size: 20px; font-weight: 800; letter-spacing: 4px; color: #2c3e50; }
+        .login-btn {
+            width: 100%; background: #0077b6; color: white; border: none;
+            padding: 15px; border-radius: 8px; font-weight: 700; cursor: pointer;
+        }
+
+        /* --- PAGE 2: STREET LIST --- */
+        .street-list { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+        .street-bar {
+            background: white; padding: 15px 20px; border-radius: 8px;
+            display: flex; justify-content: space-between; align-items: center;
+            color: #333; font-weight: 600; border-left: 5px solid #0077b6;
+            transition: 0.3s; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .street-bar:hover { transform: translateX(5px); background: #f0f8ff; }
+        .street-number {
+            background: #0077b6; color: white; width: 28px; height: 28px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px;
+        }
+
+        /* --- PAGE 3: VIEW PAGE (DETAILS) --- */
+        .details-card {
+            background: white; padding: 20px; border-radius: 10px; text-align: left;
+            margin-top: 15px; border-top: 4px solid #0077b6;
+        }
+        .detail-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .detail-item:last-child { border-bottom: none; }
+        .label { color: #666; font-size: 14px; }
+        .value { font-weight: 700; color: #333; }
+        .status-on { color: #28a745; }
+
+        /* ALERTS */
+        #message { margin-top: 15px; padding: 10px; border-radius: 5px; display: none; font-size: 14px; }
+        .error { background: #f8d7da; color: #721c24; }
+        .success { background: #d4edda; color: #155724; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <div id="loginPage">
+        <h2>Electricity Login</h2>
+        <div class="role-selector">
+            <select id="roleSelect" onchange="updateLabels()">
+                <option value="people">Consumer</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label id="idLabel">Card Number</label>
+                <input type="text" id="userInput" placeholder="12345678" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="•••••" required>
+            </div>
+            <div class="form-group">
+                <label>Captcha</label>
+                <div class="captcha-area">
+                    <div class="captcha-code" id="captchaDisplay">00000</div>
+                    <button type="button" style="border:none; background:none; cursor:pointer;" onclick="generateCaptcha()">↻</button>
+                </div>
+                <input type="text" id="captchaInput" placeholder="Enter Captcha" required>
+            </div>
+            <button type="submit" class="login-btn">Login</button>
+        </form>
+        <div id="message"></div>
+    </div>
+
+    <div id="streetPage" class="hidden">
+        <h2 id="welcomeUser">Consumer Portal</h2>
+        <p style="font-size: 13px; color: #555; margin-bottom: 15px;">Select a street to view real-time data</p>
+        
+        <div class="street-list">
+            <div class="street-bar" onclick="window.location.href='file:///D:/electricity/web/view%20page.html'">
+    <span>Main Street</span>
+    <span class="street-number">1</span>
+</div>
+            <div class="street-bar" onclick="showDetails('North Avenue', '2')">
+                <span>North Avenue</span> <span class="street-number">2</span>
+            </div>
+            <div class="street-bar" onclick="showDetails('Park Road', '3')">
+                <span>Park Road</span> <span class="street-number">3</span>
+            </div>
+            <div class="street-bar" onclick="showDetails('Sunset Boulevard', '4')">
+                <span>Sunset Boulevard</span> <span class="street-number">4</span>
+            </div>
+            <div class="street-bar" onclick="showDetails('Industrial Lane', '5')">
+                <span>Industrial Lane</span> <span class="street-number">5</span>
+            </div>
+        </div>
+        <button class="back-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <div id="viewPage" class="hidden">
+        <h2 id="detailTitle">Street Details</h2>
+        <div class="details-card">
+            <div class="detail-item">
+                <span class="label">Street Name</span>
+                <span class="value" id="valName">-</span>
+            </div>
+            <div class="detail-item">
+                <span class="label">Grid Status</span>
+                <span class="value status-on">Online</span>
+            </div>
+            <div class="detail-item">
+                <span class="label">Current Load</span>
+                <span class="value" id="valLoad">45 kW</span>
+            </div>
+            <div class="detail-item">
+                <span class="label">Maintenance</span>
+                <span class="value">None Scheduled</span>
+            </div>
+        </div>
+        <button class="back-btn" onclick="backToStreets()">← Back to List</button>
+    </div>
+
+</div>
+
+<script>
+    let captchaVal = "";
+
+    // Labels Update
+    function updateLabels() {
+        const role = document.getElementById("roleSelect").value;
+        document.getElementById("idLabel").innerText = (role === 'admin') ? "Username" : "Card Number";
+    }
+
+    // Captcha Logic
+    function generateCaptcha() {
+        captchaVal = Math.floor(10000 + Math.random() * 90000).toString();
+        document.getElementById("captchaDisplay").innerText = captchaVal;
+    }
+
+    // Login logic
+    document.getElementById("loginForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const captchaInput = document.getElementById("captchaInput").value;
+        const role = document.getElementById("roleSelect").value;
+
+        if (captchaInput !== captchaVal) {
+            showAlert("Invalid Captcha!", "error");
+            generateCaptcha();
+            return;
+        }
+
+        showAlert("Success!", "success");
+        setTimeout(() => {
+            document.getElementById("loginPage").classList.add("hidden");
+            document.getElementById("streetPage").classList.remove("hidden");
+            document.getElementById("welcomeUser").innerText = (role === 'admin') ? "Admin Dashboard" : "Consumer Portal";
+        }, 600);
+    });
+
+    // NAVIGATION LOGIC
+    function showDetails(name, number) {
+        // Switch views
+        document.getElementById("streetPage").classList.add("hidden");
+        document.getElementById("viewPage").classList.remove("hidden");
+        
+        // Fill data
+        document.getElementById("valName").innerText = name;
+        document.getElementById("valLoad").innerText = (Math.floor(Math.random() * 50) + 20) + " kW";
+    }
+
+    function backToStreets() {
+        document.getElementById("viewPage").classList.add("hidden");
+        document.getElementById("streetPage").classList.remove("hidden");
+    }
+
+    function logout() {
+        document.getElementById("streetPage").classList.add("hidden");
+        document.getElementById("loginPage").classList.remove("hidden");
+        document.getElementById("message").style.display = "none";
+        document.getElementById("loginForm").reset();
+        generateCaptcha();
+    }
+
+    function showAlert(text, type) {
+        const m = document.getElementById("message");
+        m.innerText = text;
+        m.className = type;
+        m.style.display = "block";
+    }
+
+    window.onload = generateCaptcha;
+</script>
+
+</body>
+</html>

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electricity Records - View</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: #e9ecef; padding: 30px; color: #333; }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto 25px auto;
+        }
+
+        .header h1 { color: #0077b6; font-size: 26px; font-weight: 700; }
+
+        .header-actions { display: flex; gap: 10px; }
+
+        .btn {
+            background: #0077b6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .btn:hover { background: #023e8a; }
+        .btn-add { background: #28a745; }
+        .btn-add:hover { background: #218838; }
+
+        .table-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #d1d9e0; 
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+        th { text-align: left; padding: 15px; color: #0077b6; font-weight: 700; text-transform: uppercase; font-size: 13px; }
+
+        .record-row { background: white; transition: 0.3s; }
+        .record-row td { padding: 15px; border-top: 1px solid #eee; border-bottom: 1px solid #eee; }
+
+        .status-theft { border-left: 8px solid #dc3545 !important; }
+        .status-safe { border-left: 8px solid #28a745 !important; }
+
+        input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+
+        /* Updated Action Buttons */
+        .cutoff-btn { background: #f39c12; margin-right: 5px; } /* Orange color for warning */
+        .cutoff-btn:hover { background: #e67e22; }
+        .delete-btn { background: #dc3545; }
+        .empty-msg { text-align: center; padding: 40px; color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Customer Database</h1>
+    <div class="header-actions">
+        <button class="btn btn-add" onclick="addNewEntry()">+ New Entry</button>
+        <button class="btn" onclick="exportExcel()">Export Excel</button>
+    </div>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Customer Name</th>
+                <th>Card Number</th>
+                <th>Address</th>
+                <th>Phone</th>
+                <th>Status (Theft?)</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+</div>
+
+<script>
+    let records = JSON.parse(localStorage.getItem("electricityRecords") || "[]");
+
+    // Initialize with sample data if empty
+    if(records.length === 0) {
+        const names = [
+            "Arjun", "Adithya", "Karthik", "Pranav", "Vishnu", "Surya", "Harish", 
+            "Naveen", "Nithin", "Bharath", "Raghav", "Siddharth", "Rohith", 
+            "Varun", "Dinesh", "Sanjay", "Mahesh", "Kiran", "Gokul", "Ganesh", 
+            "Ajith", "Manoj", "Vignesh", "Sathish", "Pradeep", "Arun", 
+            "Venkatesh", "Murugan", "Balaji", "Karthikeyan"
+        ];
+        
+        records = names.map(n => ({
+            name: n,
+            card: Math.floor(10000000 + Math.random() * 90000000).toString(),
+            address: "Street " + (Math.floor(Math.random() * 100)),
+            phone: "9" + Math.floor(100000000 + Math.random() * 900000000),
+            theft: Math.random() > 0.8 ? "Yes" : "No",
+            date: new Date()
+        }));
+        saveData();
+    }
+
+    function renderTable() {
+        const body = document.getElementById("tableBody");
+        body.innerHTML = "";
+
+        if (records.length === 0) {
+            body.innerHTML = `<tr><td colspan="7" class="empty-msg">No records found.</td></tr>`;
+            return;
+        }
+
+        records.forEach((item, index) => {
+            const row = document.createElement("tr");
+            row.className = "record-row " + (item.theft === "Yes" ? "status-theft" : "status-safe");
+
+            row.innerHTML = `
+                <td><input type="text" value="${item.name}" onchange="updateData(${index}, 'name', this.value)"></td>
+                <td><input type="text" value="${item.card}" onchange="updateData(${index}, 'card', this.value)"></td>
+                <td><input type="text" value="${item.address}" onchange="updateData(${index}, 'address', this.value)"></td>
+                <td><input type="text" value="${item.phone}" onchange="updateData(${index}, 'phone', this.value)"></td>
+                <td>
+                    <select onchange="updateStatus(${index}, this.value)">
+                        <option value="No" ${item.theft === 'No' ? 'selected' : ''}>No (Safe)</option>
+                        <option value="Yes" ${item.theft === 'Yes' ? 'selected' : ''}>Yes (Theft)</option>
+                    </select>
+                </td>
+                <td style="font-size: 12px; color: #666;">${new Date(item.date).toLocaleDateString()}</td>
+                <td>
+                    <button class="btn cutoff-btn" onclick="cutoffAction(this, ${index})">Cut off</button>
+                    <button class="btn delete-btn" onclick="deleteRecord(${index})">Delete</button>
+                </td>
+            `;
+            body.appendChild(row);
+        });
+    }
+
+    function addNewEntry() {
+        const newRecord = {
+            name: "New Customer",
+            card: "00000000",
+            address: "Enter Address",
+            phone: "9000000000",
+            theft: "No",
+            date: new Date()
+        };
+        
+        records.unshift(newRecord);
+        saveData();
+        renderTable();
+    }
+
+    function updateData(index, field, value) {
+        records[index][field] = value;
+        saveData();
+    }
+
+    function updateStatus(index, value) {
+        records[index].theft = value;
+        saveData();
+        renderTable();
+    }
+
+    function deleteRecord(index) {
+        if(confirm("Delete this record?")) {
+            records.splice(index, 1);
+            saveData();
+            renderTable();
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem("electricityRecords", JSON.stringify(records));
+    }
+
+    // Updated Cutoff Functionality
+    function cutoffAction(btn, index) {
+        const customerName = records[index].name;
+        if(confirm(`Are you sure you want to cut off power for ${customerName}?`)) {
+            btn.innerText = "CUT OFF ✓";
+            btn.style.background = "#000"; // Visual indicator that it's been processed
+            setTimeout(() => { 
+                btn.innerText = "Cut off"; 
+                btn.style.background = "#f39c12";
+            }, 2000);
+        }
+    }
+
+    function exportExcel() {
+        let csv = "Name,Card,Address,Phone,Theft,Date\n";
+        records.forEach(r => {
+            csv += `"${r.name}","${r.card}","${r.address}","${r.phone}","${r.theft}","${new Date(r.date).toLocaleDateString()}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Electricity_Records.csv';
+        a.click();
+    }
+
+    window.onload = renderTable;
+</script>
+
+</body>
+</html>
